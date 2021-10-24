@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="e2ad236a-6088-4945-9cfc-ae2bc5a741e4" >
+		<http:listener-connection host="localhost" port="8081" />
+	</http:listener-config>
+	<flow name="raiseerrorFlow" doc:id="a53f09d0-9fe8-4614-983f-a5752463b3cc" >
+		<http:listener doc:name="Listener" doc:id="8296d7e3-823c-4be8-9940-67563e76a4a7" config-ref="HTTP_Listener_config" path="/re"/>
+		<choice doc:name="Choice" doc:id="e3b96a69-b3a8-466a-8424-5e7e6f7345b8" tracking:enable-default-events="true">
+			<when expression="#[isEmpty(payload.employee_name)]">
+				<raise-error doc:name="Raise error" doc:id="cb37ed9f-9d38-41f5-8e84-a9b3e827dab8" type="EMP:INVALIDDATA" description="Employee name is empty"/>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="fa9a10b1-6f6a-4104-9784-2536ab0c6e5f" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+		<error-handler>
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="1d7aaad3-7777-48fb-88ef-9fd44d4c39c2" type="EMP:INVALIDDATA">
+				<ee:transform doc:name="Transform Message" doc:id="106e6c68-8927-43ef-9cc5-18aba2a83093" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+	Error:error.detailedDescription
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-continue>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="6730fc3c-2dd8-424c-8e0d-9cf7d4778f38" type="ANY">
+				<ee:transform doc:name="Transform Message" doc:id="189bd4ee-046e-439d-b8be-7ec8bff9aa5e" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	Error:error.detailedDescription,
+	"status":"failure"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>
